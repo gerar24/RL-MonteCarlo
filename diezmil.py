@@ -8,6 +8,7 @@ from jugador import (
     JugadorAleatorio,
     JugadorSiempreSePlanta,
     ElBatoQueSoloCalculaPromedios,
+    AgenteQLearning,
 )
 
 
@@ -46,6 +47,9 @@ class JuegoDiezMil:
                     puntaje_turno = 0
                     if isinstance(self.jugador, ElBatoQueSoloCalculaPromedios):
                         self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno)
+                    elif isinstance(self.jugador, AgenteQLearning):
+                        self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno)
+                        # print("PERDIO", dados_a_tirar, puntaje_turno)
 
                 else:
                     # Bien, suma puntos. Preguntamos al jugador qué quiere hacer.
@@ -61,6 +65,16 @@ class JuegoDiezMil:
                             self.jugador.actualizar_tabla(
                                 len(dados_a_tirar), puntaje_turno
                             )
+                        elif isinstance(self.jugador, AgenteQLearning):
+                            self.jugador.actualizar_tabla(
+                                len(dados_a_tirar), puntaje_turno
+                            )
+                            # print(
+                            #     "SE PLANTO",
+                            #     dados_a_tirar,
+                            #     puntaje_turno,
+                            #     puntaje_tirada,
+                            # )
 
                     elif jugada == JUGADA_TIRAR:
                         dados_a_separar = separar(dados, dados_a_tirar)
@@ -70,6 +84,11 @@ class JuegoDiezMil:
                         )
                         assert puntaje_tirada > 0 and len(dados_no_usados) == 0
                         puntaje_turno += puntaje_tirada
+                        if isinstance(self.jugador, AgenteQLearning):
+                            self.jugador.actualizar_tabla(
+                                len(dados_a_tirar), puntaje_tirada
+                            )
+                            # print("JUGO", dados_a_tirar, puntaje_turno, puntaje_tirada)
                         # Cuando usó todos los dados, vuelve a tirar todo.
                         if len(dados_a_tirar) == 0:
                             dados_a_tirar = [1, 2, 3, 4, 5, 6]
@@ -102,8 +121,9 @@ def main():
     for j in tqdm(range(100)):
         player_amounts = []
         jugador = ElBatoQueSoloCalculaPromedios(0.01)
+        # jugador = AgenteQLearning(0.05, 0.99, 0.05, 0.05)
 
-        for i in tqdm(range(1000)):
+        for i in tqdm(range(500)):
             juego = JuegoDiezMil(jugador)
             # juego_aleatorio = JuegoDiezMil(jugador_random)
             (cantidad_turnos, puntaje_final) = juego.jugar(verbose=False)
@@ -113,7 +133,7 @@ def main():
             player_amounts.append(cantidad_turnos)
             # play_amounts_random.append((i, cantidad_turnos_random))
             # print(jugador.nombre, cantidad_turnos, puntaje_final)
-        jugador.print_table()
+        # jugador.print_table()
         play_amounts.append(player_amounts)
 
     # Convert play_amounts to a numpy array for easier manipulation
