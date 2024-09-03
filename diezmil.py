@@ -117,82 +117,131 @@ class JuegoDiezMil:
             if verbose:
                 print(msg)
         return (turno, puntaje_total)
-
+#
+#
+# def main():
+#     # jugador = JugadorAleatorio("random")
+#     # juego = JuegoDiezMil(jugador)
+#     # (cantidad_turnos, puntaje_final) = juego.jugar(verbose=True)
+#     # print(jugador.nombre, cantidad_turnos, puntaje_final)
+#
+#     # jugador = JugadorSiempreSePlanta("plantón")
+#     # juego = JuegoDiezMil(jugador)
+#     # (cantidad_turnos, puntaje_final) = juego.jugar(verbose=True)
+#     # print(jugador.nombre, cantidad_turnos, puntaje_final)
+#
+#     # jugador = ElBatoQueSoloCalculaPromedios(0.05)
+#     # jugador_random = JugadorAleatorio("random")
+#
+#     play_amounts = []
+#     for j in tqdm(range(5)):
+#         player_amounts = []
+#         jugador = ElBatoQueSoloCalculaPromedios(0.05, "politica_chill.csv")
+#         #jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picada.csv")
+#         #jugador = ElBatoQueSoloCalculaPromediosMasPicados(0.05, "politica_maspicada.csv")
+#         #jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picadaplus.csv")
+#         # jugador = AgenteQLearning(0.05, 0.99, 0.05, 0.05)
+#
+#         for i in tqdm(range(20000)):
+#             juego = JuegoDiezMil(jugador)
+#             # juego_aleatorio = JuegoDiezMil(jugador_random)
+#             (cantidad_turnos, puntaje_final) = juego.jugar(verbose=False)
+#             # (cantidad_turnos_random, puntaje_final_random) = juego_aleatorio.jugar(
+#             #     verbose=False
+#             # )
+#             player_amounts.append(cantidad_turnos)
+#             # play_amounts_random.append((i, cantidad_turnos_random))
+#             # print(jugador.nombre, cantidad_turnos, puntaje_final)
+#         # jugador.print_table()
+#         play_amounts.append(player_amounts)
+#         if isinstance(jugador, ElBatoQueSoloCalculaPromediosPicados):
+#             jugador.guardar_estados_en_csv()
+#         if isinstance(jugador, ElBatoQueSoloCalculaPromediosMasPicados):
+#             jugador.guardar_estados_en_csv()
+#         if isinstance(jugador, ElBatoQueSoloCalculaPromedios):
+#             jugador.guardar_estados_en_csv()
+#         if isinstance(jugador, ElBatoQueSoloCalculaPromediosPicadosPlus):
+#             jugador.guardar_estados_en_csv()
+#
+#
+#     # Convert play_amounts to a numpy array for easier manipulation
+#     play_amounts = np.array(play_amounts)
+#
+#     # Calculate the average play amount across all agents for each iteration
+#     average_play_amounts = np.mean(play_amounts, axis=0)
+#
+#     # ultimas mil
+#     # Select the last 1000 iterations
+#     last_1000 = play_amounts[:, -1000:]
+#     # Calculate the average for each agent over the last 1000 iterations
+#     average_last_1000_per_agent = np.mean(last_1000, axis=1)
+#     # Calculate the overall average across the agents
+#     overall_average = np.mean(average_last_1000_per_agent)
+#     print("OVERALL AVERAGE in last 1000 its", overall_average)
+#
+#     # Plot the average play amounts
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(
+#         range(len(average_play_amounts)),
+#         average_play_amounts,
+#         label="Average Play Amounts",
+#     )
+#     plt.xlabel("Iteration")
+#     plt.ylabel("Average Play Amount")
+#     plt.title("Average Play Amounts Across 30 Agents Over 1000 Iterations")
+#     plt.legend()
+#     plt.savefig("MontecarloPicado.png")
+#     plt.show()
 
 def main():
-    # jugador = JugadorAleatorio("random")
-    # juego = JuegoDiezMil(jugador)
-    # (cantidad_turnos, puntaje_final) = juego.jugar(verbose=True)
-    # print(jugador.nombre, cantidad_turnos, puntaje_final)
+    agent_classes = [
+        ("politica_chill.csv", ElBatoQueSoloCalculaPromedios),
+        ("politica_picada.csv", ElBatoQueSoloCalculaPromediosPicados),
+        ("politica_maspicada.csv", ElBatoQueSoloCalculaPromediosMasPicados),
+        ("politica_picadaplus.csv", ElBatoQueSoloCalculaPromediosPicadosPlus),
+        # ("", AgenteQLearning),  # Añadir parámetros según sea necesario
+    ]
 
-    # jugador = JugadorSiempreSePlanta("plantón")
-    # juego = JuegoDiezMil(jugador)
-    # (cantidad_turnos, puntaje_final) = juego.jugar(verbose=True)
-    # print(jugador.nombre, cantidad_turnos, puntaje_final)
+    for policy_file, AgentClass in agent_classes:
+        play_amounts = []
 
-    # jugador = ElBatoQueSoloCalculaPromedios(0.05)
-    # jugador_random = JugadorAleatorio("random")
+        for j in tqdm(range(10), desc=f"Running {AgentClass.__name__}"):
+            player_amounts = []
+            jugador = AgentClass(0.05, policy_file)
 
-    play_amounts = []
-    for j in tqdm(range(5)):
-        player_amounts = []
-        jugador = ElBatoQueSoloCalculaPromedios(0.05, "politica_chill.csv")
-        #jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picada.csv")
-        #jugador = ElBatoQueSoloCalculaPromediosMasPicados(0.05, "politica_maspicada.csv")
-        #jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picadaplus.csv")
-        # jugador = AgenteQLearning(0.05, 0.99, 0.05, 0.05)
+            for i in tqdm(range(50000), desc=f"Iteration {j + 1}/10"):
+                juego = JuegoDiezMil(jugador)
+                (cantidad_turnos, puntaje_final) = juego.jugar(verbose=False)
+                player_amounts.append(cantidad_turnos)
 
-        for i in tqdm(range(20000)):
-            juego = JuegoDiezMil(jugador)
-            # juego_aleatorio = JuegoDiezMil(jugador_random)
-            (cantidad_turnos, puntaje_final) = juego.jugar(verbose=False)
-            # (cantidad_turnos_random, puntaje_final_random) = juego_aleatorio.jugar(
-            #     verbose=False
-            # )
-            player_amounts.append(cantidad_turnos)
-            # play_amounts_random.append((i, cantidad_turnos_random))
-            # print(jugador.nombre, cantidad_turnos, puntaje_final)
-        # jugador.print_table()
-        play_amounts.append(player_amounts)
-        if isinstance(jugador, ElBatoQueSoloCalculaPromediosPicados):
-            jugador.guardar_estados_en_csv()
-        if isinstance(jugador, ElBatoQueSoloCalculaPromediosMasPicados):
-            jugador.guardar_estados_en_csv()
-        if isinstance(jugador, ElBatoQueSoloCalculaPromedios):
-            jugador.guardar_estados_en_csv()
-        if isinstance(jugador, ElBatoQueSoloCalculaPromediosPicadosPlus):
+            play_amounts.append(player_amounts)
             jugador.guardar_estados_en_csv()
 
+        # Convert play_amounts to a numpy array for easier manipulation
+        play_amounts = np.array(play_amounts)
 
-    # Convert play_amounts to a numpy array for easier manipulation
-    play_amounts = np.array(play_amounts)
+        # Calculate the average play amount across all runs
+        average_play_amounts = np.mean(play_amounts, axis=0)
 
-    # Calculate the average play amount across all agents for each iteration
-    average_play_amounts = np.mean(play_amounts, axis=0)
+        # Últimas mil iteraciones
+        last_10000 = play_amounts[:, -10000:]
+        average_last_10000_per_agent = np.mean(last_10000, axis=1)
+        overall_average = np.mean(average_last_10000_per_agent)
+        print(f"OVERALL AVERAGE in last 10000 iterations for {AgentClass.__name__}: {overall_average}")
 
-    # ultimas mil
-    # Select the last 1000 iterations
-    last_1000 = play_amounts[:, -1000:]
-    # Calculate the average for each agent over the last 1000 iterations
-    average_last_1000_per_agent = np.mean(last_1000, axis=1)
-    # Calculate the overall average across the agents
-    overall_average = np.mean(average_last_1000_per_agent)
-    print("OVERALL AVERAGE in last 1000 its", overall_average)
-
-    # Plot the average play amounts
-    plt.figure(figsize=(10, 6))
-    plt.plot(
-        range(len(average_play_amounts)),
-        average_play_amounts,
-        label="Average Play Amounts",
-    )
-    plt.xlabel("Iteration")
-    plt.ylabel("Average Play Amount")
-    plt.title("Average Play Amounts Across 30 Agents Over 1000 Iterations")
-    plt.legend()
-    plt.savefig("MontecarloPicado.png")
-    plt.show()
-
+        # Plot the average play amounts
+        plt.figure(figsize=(10, 6))
+        plt.plot(
+            range(len(average_play_amounts)),
+            average_play_amounts,
+            label=f"Average Play Amounts ({AgentClass.__name__})",
+        )
+        plt.xlabel("Iteration")
+        plt.ylabel("Average Play Amount")
+        plt.title(f"Average Play Amounts for {AgentClass.__name__} Over 50,000 Iterations")
+        plt.legend()
+        plt.savefig(f"Montecarlo_{AgentClass.__name__}.png")
+        plt.close()
 
 
 if __name__ == "__main__":
