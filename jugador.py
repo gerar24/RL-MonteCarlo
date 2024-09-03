@@ -472,6 +472,11 @@ class ElBatoQueSoloCalculaPromediosPicadosPlus(Jugador):
         cant_dados = len(no_usados)
         puntaje_acum = puntaje_turno + puntaje
 
+        nuevo_puntaje_total = puntaje_total + puntaje_acum
+        # Ajustar la recompensa si excede el puntaje máximo de 10,000
+        if nuevo_puntaje_total > 10000:
+            puntaje_acum = 10000 - puntaje_total
+
         if uniform(0, 1) < self.epsilon:  # BUGGG?? tenemos poca entrada no greedy y sube mas greedy 50%
             if uniform(0, 1) > 0.5:
                 self.history.append((cant_dados, puntaje_acum,"plantarse"))
