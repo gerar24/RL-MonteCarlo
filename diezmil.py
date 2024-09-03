@@ -91,12 +91,6 @@ class JuegoDiezMil:
                             self.jugador.actualizar_tabla(
                                 len(dados_a_tirar), puntaje_turno
                             )
-                            # print(
-                            #     "SE PLANTO",
-                            #     dados_a_tirar,
-                            #     puntaje_turno,
-                            #     puntaje_tirada,
-                            # )
 
                     elif jugada == JUGADA_TIRAR:
                         dados_a_separar = separar(dados, dados_a_tirar)
@@ -110,7 +104,6 @@ class JuegoDiezMil:
                             self.jugador.actualizar_tabla(
                                 len(dados_a_tirar), puntaje_tirada
                             )
-                            # print("JUGO", dados_a_tirar, puntaje_turno, puntaje_tirada)
                         # Cuando usó todos los dados, vuelve a tirar todo.
                         if len(dados_a_tirar) == 0:
                             dados_a_tirar = [1, 2, 3, 4, 5, 6]
@@ -141,15 +134,15 @@ def main():
     # jugador_random = JugadorAleatorio("random")
 
     play_amounts = []
-    for j in tqdm(range(3)):
+    for j in tqdm(range(5)):
         player_amounts = []
-        #jugador = ElBatoQueSoloCalculaPromedios(0.05)
+        jugador = ElBatoQueSoloCalculaPromedios(0.05, "politica_chill.csv")
         #jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picada.csv")
         #jugador = ElBatoQueSoloCalculaPromediosMasPicados(0.05, "politica_maspicada.csv")
-        jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picadaplus.csv")
+        #jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picadaplus.csv")
         # jugador = AgenteQLearning(0.05, 0.99, 0.05, 0.05)
 
-        for i in tqdm(range(500000)):
+        for i in tqdm(range(20000)):
             juego = JuegoDiezMil(jugador)
             # juego_aleatorio = JuegoDiezMil(jugador_random)
             (cantidad_turnos, puntaje_final) = juego.jugar(verbose=False)
@@ -163,6 +156,13 @@ def main():
         play_amounts.append(player_amounts)
         if isinstance(jugador, ElBatoQueSoloCalculaPromediosPicados):
             jugador.guardar_estados_en_csv()
+        if isinstance(jugador, ElBatoQueSoloCalculaPromediosMasPicados):
+            jugador.guardar_estados_en_csv()
+        if isinstance(jugador, ElBatoQueSoloCalculaPromedios):
+            jugador.guardar_estados_en_csv()
+        if isinstance(jugador, ElBatoQueSoloCalculaPromediosPicadosPlus):
+            jugador.guardar_estados_en_csv()
+
 
     # Convert play_amounts to a numpy array for easier manipulation
     play_amounts = np.array(play_amounts)

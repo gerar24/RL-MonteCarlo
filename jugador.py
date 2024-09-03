@@ -51,8 +51,9 @@ class JugadorSiempreSePlanta(Jugador):
 
 
 class ElBatoQueSoloCalculaPromedios(Jugador):
-    def __init__(self, epsilon: float):
+    def __init__(self, epsilon: float, politica_csv_path):
         self.nombre = "Monte Carlo"
+        self.politica_csv_path = politica_csv_path
         self.epsilon = epsilon  # e-greedy
         self.history = []
         self.estados = {
@@ -64,6 +65,54 @@ class ElBatoQueSoloCalculaPromedios(Jugador):
             5: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
             6: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
         }
+        # Elimina el archivo si ya existe
+        if os.path.exists(self.politica_csv_path):
+            os.remove(self.politica_csv_path)
+
+        self._crear_csv()
+        self._cargar_estados()
+
+    def _crear_csv(self):
+        estados_base = {
+            0: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+            1: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+            2: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+            3: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+            4: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+            5: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+        }
+        with open(self.politica_csv_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            # Escribe el encabezado
+            writer.writerow(["estado", "tirar", "plantarse", "c_tirar", "c_plantarse"])
+
+            for estado, valores in estados_base.items():
+                fila = [estado] + list(valores.values())
+                writer.writerow(fila)
+
+    def _cargar_estados(self):
+        with open(self.politica_csv_path, mode='r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                estado = int(row["estado"])
+                self.estados[estado] = {
+                    "tirar": int(row["tirar"]),
+                    "plantarse": int(row["plantarse"]),
+                    "c_tirar": int(row["c_tirar"]),
+                    "c_plantarse": int(row["c_plantarse"])
+                }
+
+    def guardar_estados_en_csv(self):
+        """Guarda el contenido de self.estados en el archivo CSV."""
+        with open(self.politica_csv_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            # Escribe el encabezado
+            writer.writerow(["estado", "tirar", "plantarse", "c_tirar", "c_plantarse"])
+
+            for estado, valores in self.estados.items():
+                fila = [estado, valores["tirar"], valores["plantarse"],
+                        valores["c_tirar"], valores["c_plantarse"]]
+                writer.writerow(fila)
 
     def print_table(self):
         for state, rewards in self.estados.items():
