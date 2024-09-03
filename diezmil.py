@@ -149,7 +149,7 @@ def main():
         jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picadaplus.csv")
         # jugador = AgenteQLearning(0.05, 0.99, 0.05, 0.05)
 
-        for i in tqdm(range(100000)):
+        for i in tqdm(range(500000)):
             juego = JuegoDiezMil(jugador)
             # juego_aleatorio = JuegoDiezMil(jugador_random)
             (cantidad_turnos, puntaje_final) = juego.jugar(verbose=False)
