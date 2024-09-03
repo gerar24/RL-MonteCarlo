@@ -11,6 +11,7 @@ from jugador import (
     AgenteQLearning,
     ElBatoQueSoloCalculaPromediosPicados,
     ElBatoQueSoloCalculaPromediosMasPicados,
+    ElBatoQueSoloCalculaPromediosPicadosPlus,
 )
 
 
@@ -53,6 +54,8 @@ class JuegoDiezMil:
                         self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
                     elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosMasPicados):
                         self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
+                    elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosPicadosPlus):
+                        self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
                     elif isinstance(self.jugador, AgenteQLearning):
                         self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno)
                         # print("PERDIO", dados_a_tirar, puntaje_turno)
@@ -61,7 +64,7 @@ class JuegoDiezMil:
                 else:
                     # Bien, suma puntos. Preguntamos al jugador qué quiere hacer.
                     jugada, dados_a_tirar = self.jugador.jugar(
-                        puntaje_total, puntaje_turno + puntaje_tirada, dados # puntaje turno cambiado por puntajeturno + puntaje tirada
+                        puntaje_total, puntaje_turno, dados # puntaje turno cambiado por puntajeturno + puntaje tirada
                     ) #PORQUE ACA PUNTAJE TURNO NO TIENE LA TIRADA ??????????
 
                     if jugada == JUGADA_PLANTARSE:
@@ -77,6 +80,10 @@ class JuegoDiezMil:
                                 len(dados_a_tirar), puntaje_turno, puntaje_total
                             )
                         elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosMasPicados):
+                            self.jugador.actualizar_tabla(
+                                len(dados_a_tirar), puntaje_turno, puntaje_total
+                            )
+                        elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosPicadosPlus):
                             self.jugador.actualizar_tabla(
                                 len(dados_a_tirar), puntaje_turno, puntaje_total
                             )
@@ -138,7 +145,8 @@ def main():
         player_amounts = []
         #jugador = ElBatoQueSoloCalculaPromedios(0.05)
         #jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picada.csv")
-        jugador = ElBatoQueSoloCalculaPromediosMasPicados(0.05, "politica_maspicada.csv")
+        #jugador = ElBatoQueSoloCalculaPromediosMasPicados(0.05, "politica_maspicada.csv")
+        jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picadaplus.csv")
         # jugador = AgenteQLearning(0.05, 0.99, 0.05, 0.05)
 
         for i in tqdm(range(100000)):
