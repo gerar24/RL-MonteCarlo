@@ -195,21 +195,21 @@ class JuegoDiezMil:
 
 def main():
     agent_classes = [
-        ("politica_chill.csv", ElBatoQueSoloCalculaPromedios),
-        ("politica_picada.csv", ElBatoQueSoloCalculaPromediosPicados),
-        ("politica_maspicada.csv", ElBatoQueSoloCalculaPromediosMasPicados),
-        ("politica_picadaplus.csv", ElBatoQueSoloCalculaPromediosPicadosPlus),
+        #("politica_chill.csv", ElBatoQueSoloCalculaPromedios),
+        #("politica_picada.csv", ElBatoQueSoloCalculaPromediosPicados),
+        ("politica_maspicada_10palos.csv", ElBatoQueSoloCalculaPromediosMasPicados),
+        #("politica_picadaplus.csv", ElBatoQueSoloCalculaPromediosPicadosPlus),
         # ("", AgenteQLearning),  # Añadir parámetros según sea necesario
     ]
 
     for policy_file, AgentClass in agent_classes:
         play_amounts = []
 
-        for j in tqdm(range(10), desc=f"Running {AgentClass.__name__}"):
+        for j in tqdm(range(1), desc=f"Running {AgentClass.__name__}"):
             player_amounts = []
             jugador = AgentClass(0.05, policy_file)
 
-            for i in tqdm(range(50000), desc=f"Iteration {j + 1}/10"):
+            for i in tqdm(range(10000000), desc=f"Iteration {j + 1}/10"):
                 juego = JuegoDiezMil(jugador)
                 (cantidad_turnos, puntaje_final) = juego.jugar(verbose=False)
                 player_amounts.append(cantidad_turnos)
@@ -238,9 +238,9 @@ def main():
         )
         plt.xlabel("Iteration")
         plt.ylabel("Average Play Amount")
-        plt.title(f"Average Play Amounts for {AgentClass.__name__} Over 50,000 Iterations")
+        plt.title(f"Average Play Amounts for {AgentClass.__name__} Over 10,000,000 Iterations")
         plt.text(len(average_play_amounts) * 0.75, np.min(average_play_amounts) * 0.98, f"Average in last 10000 iterations{overall_average}")
-        plt.savefig(f"Montecarlo_{AgentClass.__name__}.png")
+        plt.savefig(f"Montecarlo_{AgentClass.__name__}10palos.png")
         plt.close()
 
 
