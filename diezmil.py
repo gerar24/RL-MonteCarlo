@@ -239,7 +239,7 @@ def main():
         plt.xlabel("Iteration")
         plt.ylabel("Average Play Amount")
         plt.title(f"Average Play Amounts for {AgentClass.__name__} Over 50,000 Iterations")
-        plt.text(len(average_play_amounts) * 0.95, np.min(average_play_amounts) * 0.98, f"Average in last 10000 iterations{overall_average}")
+        plt.text(len(average_play_amounts) * 0.75, np.min(average_play_amounts) * 0.98, f"Average in last 10000 iterations{overall_average}")
         plt.savefig(f"Montecarlo_{AgentClass.__name__}.png")
         plt.close()
 
