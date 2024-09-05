@@ -582,10 +582,10 @@ class ElBatoQueSoloCalculaPromediosPicadosPlus(Jugador):
 
     def actualizar_tabla(self, estado, puntaje_turno, puntaje_total):
 
-        nuevo_puntaje_total = puntaje_total + puntaje_turno
+        #nuevo_puntaje_total = puntaje_total + puntaje_turno
         # Ajustar la recompensa si excede el puntaje máximo de 10,000
-        if nuevo_puntaje_total > 10000:
-            puntaje_turno = 10000 - puntaje_total
+        #if nuevo_puntaje_total > 10000:
+        #    puntaje_turno = 10000 - puntaje_total
 
         for estado, puntaje_acum,accion in self.history:
             self.estados[estado][puntaje_acum][accion] += puntaje_turno
