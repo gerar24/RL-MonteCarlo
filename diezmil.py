@@ -12,6 +12,7 @@ from jugador import (
     ElBatoQueSoloCalculaPromediosPicados,
     ElBatoQueSoloCalculaPromediosMasPicados,
     ElBatoQueSoloCalculaPromediosPicadosPlus,
+    ElBatoQueSoloCalculaPromediosMasPicados_Upgraded,
 )
 
 
@@ -198,7 +199,8 @@ def main():
         #("politica_chill.csv", ElBatoQueSoloCalculaPromedios),
         #("politica_picada.csv", ElBatoQueSoloCalculaPromediosPicados),
         #("politica_maspicada_10palos.csv", ElBatoQueSoloCalculaPromediosMasPicados),
-        ("politica_picadaplus_1palo_2.5%_nmalrecomp.csv", ElBatoQueSoloCalculaPromediosPicadosPlus),
+        #("politica_picadaplus_1palo_2.5%_nmalrecomp.csv", ElBatoQueSoloCalculaPromediosPicadosPlus),
+        ("politica_maspicadaupgraded_1palo_2.5%csv", ElBatoQueSoloCalculaPromediosMasPicados_Upgraded),
         # ("", AgenteQLearning),  # Añadir parámetros según sea necesario
     ]
 
@@ -240,7 +242,7 @@ def main():
         plt.ylabel("Average Play Amount")
         plt.title(f"Average Play Amounts for {AgentClass.__name__} Over 1,000,000 Iterations")
         plt.text(len(average_play_amounts) * 0.75, np.min(average_play_amounts) * 0.98, f"Average in last 10000 iterations{overall_average}")
-        plt.savefig(f"Montecarlo_{AgentClass.__name__}_1palo_2.5%_nmalrecomp.png")
+        plt.savefig(f"Montecarlo_{AgentClass.__name__}_1palo_2.5%.png")
         plt.close()
 
 

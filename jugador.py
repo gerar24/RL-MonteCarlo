@@ -592,6 +592,144 @@ class ElBatoQueSoloCalculaPromediosPicadosPlus(Jugador):
             self.estados[estado][puntaje_acum]["c_" + accion] += 1
         self.history.clear()
 
+
+class ElBatoQueSoloCalculaPromediosMasPicados_Upgraded(Jugador):
+    def __init__(self, epsilon: float, politica_csv_path):
+        self.nombre = "Monte Carlo"
+        self.epsilon = epsilon  # e-greedy
+        self.history = []
+
+        self.politica_csv_path = politica_csv_path
+        self.estados = {}
+
+        # Elimina el archivo si ya existe
+        if os.path.exists(self.politica_csv_path):
+            os.remove(self.politica_csv_path)
+
+        self._crear_csv()
+        self._cargar_estados()
+
+    def _crear_csv(self):
+        estados_base = {
+            0: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+            1: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+            2: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+            3: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+            4: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+            5: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
+        }
+
+        with open(self.politica_csv_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            # Escribe el encabezado
+            writer.writerow(
+                ["estado", "puntuacion", "puntaje_acumulado", "tirar", "plantarse", "c_tirar", "c_plantarse"])
+
+            for estado in estados_base.keys():
+                for puntuacion in range(6750, 10001, 250):
+                    for puntaje_acumulado in range(0, 10001, 50):
+                        fila = [estado, puntuacion, puntaje_acumulado] + list(estados_base[estado].values())
+                        writer.writerow(fila)
+
+    def _cargar_estados(self):
+        with open(self.politica_csv_path, mode='r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                estado = int(row["estado"])
+                puntuacion = int(row["puntuacion"])
+                puntaje_acumulado = int(row["puntaje_acumulado"])
+                if estado not in self.estados:
+                    self.estados[estado] = {}
+                if puntuacion not in self.estados[estado]:
+                    self.estados[estado][puntuacion] = {}
+                self.estados[estado][puntuacion][puntaje_acumulado] = {
+                    "tirar": int(row["tirar"]),
+                    "plantarse": int(row["plantarse"]),
+                    "c_tirar": int(row["c_tirar"]),
+                    "c_plantarse": int(row["c_plantarse"])
+                }
+
+    def guardar_estados_en_csv(self):
+        """Guarda el contenido de self.estados en el archivo CSV."""
+        with open(self.politica_csv_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            # Escribe el encabezado
+            writer.writerow(
+                ["estado", "puntuacion", "puntaje_acumulado", "tirar", "plantarse", "c_tirar", "c_plantarse"])
+
+            for estado, puntuaciones in self.estados.items():
+                for puntuacion, acumulados in puntuaciones.items():
+                    for puntaje_acumulado, valores in acumulados.items():
+                        fila = [estado, puntuacion, puntaje_acumulado, valores["tirar"], valores["plantarse"],
+                                valores["c_tirar"], valores["c_plantarse"]]
+                        writer.writerow(fila)
+
+    def _asignar_bin(self, numero):
+        # Definir los límites
+        bins = np.arange(6750, 10250, 250)  # Bins desde 6750 hasta 10000
+        if numero < 6750:
+            return 6750
+        else:
+            # Seleccionar el bin más cercano
+            return bins[np.argmin(np.abs(bins - numero))]
+
+    def jugar(self, puntaje_total: int, puntaje_turno: int, dados: list[int]):
+        (puntaje, no_usados) = puntaje_y_no_usados(dados)
+        cant_dados = len(no_usados)
+        puntaje_acumulado = puntaje_turno  # no tiene lo de la tirada + puntaje???
+        # hardcode para probar algo
+        if puntaje_turno >= 10000:
+            # if puntaje_acumulado + puntaje >= 10000:
+            return (JUGADA_PLANTARSE, [])
+
+        if uniform(0, 1) < self.epsilon:  # Acción no greedy
+            if uniform(0, 1) > 0.5:
+                self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "plantarse"))
+                return (JUGADA_PLANTARSE, [])
+            else:
+                self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "tirar"))
+                return (JUGADA_TIRAR, no_usados)
+        else:  # Acción greedy
+            puntaje_total = self._asignar_bin(puntaje_total)
+            if (
+                    self.estados[cant_dados][puntaje_total][puntaje_acumulado]["tirar"] /
+                    self.estados[cant_dados][puntaje_total][puntaje_acumulado]["c_tirar"]
+                    > self.estados[cant_dados][puntaje_total][puntaje_acumulado]["plantarse"]
+                    / self.estados[cant_dados][puntaje_total][puntaje_acumulado]["c_plantarse"]
+            ):
+                self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "tirar"))
+                return (JUGADA_TIRAR, no_usados)
+            elif (
+                    self.estados[cant_dados][puntaje_total][puntaje_acumulado]["tirar"] /
+                    self.estados[cant_dados][puntaje_total][puntaje_acumulado]["c_tirar"]
+                    < self.estados[cant_dados][puntaje_total][puntaje_acumulado]["plantarse"]
+                    / self.estados[cant_dados][puntaje_total][puntaje_acumulado]["c_plantarse"]
+            ):
+                self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "plantarse"))
+                return (JUGADA_PLANTARSE, [])
+            else:
+                if uniform(0, 1) > 0.5:  # Si es igual, se elige aleatoriamente
+                    self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "tirar"))
+                    return (JUGADA_TIRAR, no_usados)
+                else:
+                    self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "plantarse"))
+                    return (JUGADA_PLANTARSE, [])
+
+    def actualizar_tabla(self, estado, puntaje_turno, puntaje_total):
+
+        nuevo_puntaje_total = puntaje_total + puntaje_turno
+        if nuevo_puntaje_total > 10000:
+            puntaje_turno = 10000 - puntaje_total
+
+        puntaje_total = self._asignar_bin(puntaje_total)
+
+        for estado, _, puntaje_acum, accion in self.history:  # puntaje total deberia ser igual a _, acum no porque es parte del estado
+            if puntaje_acum + puntaje_total > 10000:
+                puntaje_acum = 10000 - puntaje_total
+            self.estados[estado][puntaje_total][puntaje_acum][accion] += puntaje_turno
+            self.estados[estado][puntaje_total][puntaje_acum]["c_" + accion] += 1
+        self.history.clear()
+
 class AgenteQLearning(Jugador):
     def __init__(self, alpha: float, gamma: float, epsilon: float):
         self.nombre = "Q-Learning"
