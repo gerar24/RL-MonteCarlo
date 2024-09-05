@@ -57,6 +57,8 @@ class JuegoDiezMil:
                         self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
                     elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosPicadosPlus):
                         self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
+                    elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosMasPicados_Upgraded):
+                        self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
                     elif isinstance(self.jugador, AgenteQLearning):
                         self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno)
                         # print("PERDIO", dados_a_tirar, puntaje_turno)
@@ -85,6 +87,10 @@ class JuegoDiezMil:
                                 len(dados_a_tirar), puntaje_turno, puntaje_total
                             )
                         elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosPicadosPlus):
+                            self.jugador.actualizar_tabla(
+                                len(dados_a_tirar), puntaje_turno, puntaje_total
+                            )
+                        elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosMasPicados_Upgraded):
                             self.jugador.actualizar_tabla(
                                 len(dados_a_tirar), puntaje_turno, puntaje_total
                             )
