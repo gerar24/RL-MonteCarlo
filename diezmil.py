@@ -200,7 +200,7 @@ def main():
         #("politica_picada.csv", ElBatoQueSoloCalculaPromediosPicados),
         #("politica_maspicada_10palos.csv", ElBatoQueSoloCalculaPromediosMasPicados),
         #("politica_picadaplus_1palo_2.5%_nmalrecomp.csv", ElBatoQueSoloCalculaPromediosPicadosPlus),
-        ("politica_maspicadaupgraded_1palo_2.5%csv", ElBatoQueSoloCalculaPromediosMasPicados_Upgraded),
+        ("politica_maspicadaupgraded_1palo_2.5%.csv", ElBatoQueSoloCalculaPromediosMasPicados_Upgraded),
         # ("", AgenteQLearning),  # Añadir parámetros según sea necesario
     ]
 

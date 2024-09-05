@@ -682,37 +682,38 @@ class ElBatoQueSoloCalculaPromediosMasPicados_Upgraded(Jugador):
             # if puntaje_acumulado + puntaje >= 10000:
             return (JUGADA_PLANTARSE, [])
 
+        puntaje_total_binned = self._asignar_bin(puntaje_total)
+
         if uniform(0, 1) < self.epsilon:  # Acción no greedy
             if uniform(0, 1) > 0.5:
-                self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "plantarse"))
+                self.history.append((cant_dados, puntaje_total_binned, puntaje_acumulado, "plantarse"))
                 return (JUGADA_PLANTARSE, [])
             else:
-                self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "tirar"))
+                self.history.append((cant_dados, puntaje_total_binned, puntaje_acumulado, "tirar"))
                 return (JUGADA_TIRAR, no_usados)
         else:  # Acción greedy
-            puntaje_total = self._asignar_bin(puntaje_total)
             if (
-                    self.estados[cant_dados][puntaje_total][puntaje_acumulado]["tirar"] /
-                    self.estados[cant_dados][puntaje_total][puntaje_acumulado]["c_tirar"]
-                    > self.estados[cant_dados][puntaje_total][puntaje_acumulado]["plantarse"]
-                    / self.estados[cant_dados][puntaje_total][puntaje_acumulado]["c_plantarse"]
+                    self.estados[cant_dados][puntaje_total_binned][puntaje_acumulado]["tirar"] /
+                    self.estados[cant_dados][puntaje_total_binned][puntaje_acumulado]["c_tirar"]
+                    > self.estados[cant_dados][puntaje_total_binned][puntaje_acumulado]["plantarse"]
+                    / self.estados[cant_dados][puntaje_total_binned][puntaje_acumulado]["c_plantarse"]
             ):
-                self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "tirar"))
+                self.history.append((cant_dados, puntaje_total_binned, puntaje_acumulado, "tirar"))
                 return (JUGADA_TIRAR, no_usados)
             elif (
-                    self.estados[cant_dados][puntaje_total][puntaje_acumulado]["tirar"] /
-                    self.estados[cant_dados][puntaje_total][puntaje_acumulado]["c_tirar"]
-                    < self.estados[cant_dados][puntaje_total][puntaje_acumulado]["plantarse"]
-                    / self.estados[cant_dados][puntaje_total][puntaje_acumulado]["c_plantarse"]
+                    self.estados[cant_dados][puntaje_total_binned][puntaje_acumulado]["tirar"] /
+                    self.estados[cant_dados][puntaje_total_binned][puntaje_acumulado]["c_tirar"]
+                    < self.estados[cant_dados][puntaje_total_binned][puntaje_acumulado]["plantarse"]
+                    / self.estados[cant_dados][puntaje_total_binned][puntaje_acumulado]["c_plantarse"]
             ):
-                self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "plantarse"))
+                self.history.append((cant_dados, puntaje_total_binned, puntaje_acumulado, "plantarse"))
                 return (JUGADA_PLANTARSE, [])
             else:
                 if uniform(0, 1) > 0.5:  # Si es igual, se elige aleatoriamente
-                    self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "tirar"))
+                    self.history.append((cant_dados, puntaje_total_binned, puntaje_acumulado, "tirar"))
                     return (JUGADA_TIRAR, no_usados)
                 else:
-                    self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "plantarse"))
+                    self.history.append((cant_dados, puntaje_total_binned, puntaje_acumulado, "plantarse"))
                     return (JUGADA_PLANTARSE, [])
 
     def actualizar_tabla(self, estado, puntaje_turno, puntaje_total):
@@ -721,13 +722,13 @@ class ElBatoQueSoloCalculaPromediosMasPicados_Upgraded(Jugador):
         if nuevo_puntaje_total > 10000:
             puntaje_turno = 10000 - puntaje_total
 
-        puntaje_total = self._asignar_bin(puntaje_total)
+        puntaje_total_binned = self._asignar_bin(puntaje_total)
 
         for estado, _, puntaje_acum, accion in self.history:  # puntaje total deberia ser igual a _, acum no porque es parte del estado
             if puntaje_acum + puntaje_total > 10000:
                 puntaje_acum = 10000 - puntaje_total
-            self.estados[estado][puntaje_total][puntaje_acum][accion] += puntaje_turno
-            self.estados[estado][puntaje_total][puntaje_acum]["c_" + accion] += 1
+            self.estados[estado][puntaje_total_binned][puntaje_acum][accion] += puntaje_turno
+            self.estados[estado][puntaje_total_binned][puntaje_acum]["c_" + accion] += 1
         self.history.clear()
 
 class AgenteQLearning(Jugador):
