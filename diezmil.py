@@ -211,7 +211,7 @@ def main():
             player_amounts = []
             jugador = AgentClass(0.025, policy_file)
 
-            for i in tqdm(range(1000000), desc=f"Iteration {j + 1}/10"):
+            for i in tqdm(range(10000), desc=f"Iteration {j + 1}/10"):
                 juego = JuegoDiezMil(jugador)
                 (cantidad_turnos, puntaje_final) = juego.jugar(verbose=False)
                 player_amounts.append(cantidad_turnos)

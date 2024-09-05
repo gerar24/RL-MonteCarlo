@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from utils import puntaje_y_no_usados, JUGADA_PLANTARSE, JUGADA_TIRAR
 import os
 import csv
-
+import numpy as np
 
 class Jugador(ABC):
     @abstractmethod
