@@ -10,9 +10,9 @@ class Jugador(ABC):
     @abstractmethod
     def jugar(
         self,
+        dados: list[int],
         puntaje_total: int,
         puntaje_turno: int,
-        dados: list[int],
         verbose: bool = False,
     ) -> tuple[int, list[int]]:
         pass
@@ -24,9 +24,9 @@ class JugadorAleatorio(Jugador):
 
     def jugar(
         self,
-        puntaje_total: int,
-        puntaje_turno: int,
         dados: list[int],
+        puntaje_turno: int,
+        puntaje_total: int,
         verbose: bool = False,
     ) -> tuple[int, list[int]]:
         (puntaje, no_usados) = puntaje_y_no_usados(dados)
@@ -42,20 +42,20 @@ class JugadorSiempreSePlanta(Jugador):
 
     def jugar(
         self,
-        puntaje_total: int,
-        puntaje_turno: int,
         dados: list[int],
+        puntaje_turno: int,
+        puntaje_total: int,
         verbose: bool = False,
     ) -> tuple[int, list[int]]:
         return (JUGADA_PLANTARSE, [])
 
 
-class ElBatoQueSoloCalculaPromedios(Jugador):
-    def __init__(self, epsilon: float, politica_csv_path):
-        self.nombre = "Monte Carlo"
+class MonteCarlo_Base_Ag1(Jugador):
+    def __init__(self, epsilon: float, politica_csv_path, training):
+        self.nombre = "MonteCarlo_Base_Ag1"
         self.politica_csv_path = politica_csv_path
         self.epsilon = epsilon  # e-greedy
-        self.history = []
+        self.history = [] # Historia de estados y acciones antes de llegar a la recompensa y estado terminal.
         self.estados = {
             0: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
             1: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
@@ -65,14 +65,20 @@ class ElBatoQueSoloCalculaPromedios(Jugador):
             5: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
             6: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
         }
-        # Elimina el archivo si ya existe
-        if os.path.exists(self.politica_csv_path):
-            os.remove(self.politica_csv_path)
+        # Training es un booleano que indica si estamos entrenando o jugando
+        # por lo que decide si se comienza una tabla nueva o se utiliza una ya existente
+        self.training = training
 
-        self._crear_csv()
+        if training:
+            # Elimina el archivo si ya existe
+            if os.path.exists(self.politica_csv_path):
+                os.remove(self.politica_csv_path)
+
+            self._crear_csv()
+
         self._cargar_estados()
 
-    def _crear_csv(self):
+    def _crear_csv(self): #Crea un csv vacio con la tabla.
         estados_base = {
             0: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
             1: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
@@ -90,7 +96,7 @@ class ElBatoQueSoloCalculaPromedios(Jugador):
                 fila = [estado] + list(valores.values())
                 writer.writerow(fila)
 
-    def _cargar_estados(self):
+    def _cargar_estados(self): #Carga los estados de un csv, vacio (formateado con crear_csv) o no.
         with open(self.politica_csv_path, mode='r') as file:
             reader = csv.DictReader(file)
             for row in reader:
@@ -102,7 +108,7 @@ class ElBatoQueSoloCalculaPromedios(Jugador):
                     "c_plantarse": int(row["c_plantarse"])
                 }
 
-    def guardar_estados_en_csv(self):
+    def guardar_estados_en_csv(self): #Guarda los estados una vez finalizado el entrenamiento.
         """Guarda el contenido de self.estados en el archivo CSV."""
         with open(self.politica_csv_path, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -114,33 +120,18 @@ class ElBatoQueSoloCalculaPromedios(Jugador):
                         valores["c_tirar"], valores["c_plantarse"]]
                 writer.writerow(fila)
 
-    def print_table(self):
-        for state, rewards in self.estados.items():
-            reward_plantarse = rewards["plantarse"]
-            reward_tirar = rewards["tirar"]
-            avg_reward_plantarse = reward_plantarse / rewards["c_plantarse"]
-            avg_reward_tirar = reward_tirar / rewards["c_tirar"]
-            ct = rewards["c_tirar"]
-            cp = rewards["c_plantarse"]
-
-            print(f"State {state}:")
-            print(f"  Cantidad plantarse: {cp:.2f}")
-            print(f"  Cantidad tirar: {ct:.2f}")
-            print(f"  Promedio reward_plantarse: {avg_reward_plantarse:.2f}")
-            print(f"  Promedio reward_tirar: {avg_reward_tirar:.2f}")
-
     def jugar(self, puntaje_total: int, puntaje_turno: int, dados: list[int]):
         (puntaje, no_usados) = puntaje_y_no_usados(dados)
         cant_dados = len(no_usados)
 
-        if uniform(0, 1) < self.epsilon:
+        if uniform(0, 1) < self.epsilon and self.training: # E-Greedy IF.
             if uniform(0, 1) > 0.5:
                 self.history.append((cant_dados, "plantarse"))
                 return (JUGADA_PLANTARSE, [])
             else:
                 self.history.append((cant_dados, "tirar"))
                 return (JUGADA_TIRAR, no_usados)
-        else:
+        else: # Veo que acción tiene mejor esperanza estimada y la tomo.
             if (
                 self.estados[cant_dados]["tirar"] / self.estados[cant_dados]["c_tirar"]
                 > self.estados[cant_dados]["plantarse"]
@@ -155,35 +146,44 @@ class ElBatoQueSoloCalculaPromedios(Jugador):
             ):
                 self.history.append((cant_dados, "plantarse"))
                 return (JUGADA_PLANTARSE, [])
-            else:
+            else: #Si las esperanzas estimadas son iguales, elijo random.
                 if uniform(0, 1) > 0.5:
                     return (JUGADA_TIRAR, no_usados)
                 else:
                     return (JUGADA_PLANTARSE, [])
 
     def actualizar_tabla(self, estado, puntaje_turno):
-        for estado, accion in self.history:
-            self.estados[estado][accion] += puntaje_turno
-            self.estados[estado]["c_" + accion] += 1
+        # Si no estoy entrenando una vez que llegue al estado terminal del turno, actualizo todos los estados recorridos.
+        if self.training:
+            for estado, accion in self.history:
+                self.estados[estado][accion] += puntaje_turno
+                self.estados[estado]["c_" + accion] += 1
         self.history.clear()
 
-class ElBatoQueSoloCalculaPromediosPicados(Jugador):
-    def __init__(self, epsilon: float, politica_csv_path):
-        self.nombre = "Monte Carlo"
+class MonteCarlo_Base_Ag2_PTotal(Jugador):
+    def __init__(self, epsilon: float, politica_csv_path, training):
+        self.nombre = "MonteCarlo_Base_Ag2_PTotal"
         self.epsilon = epsilon  # e-greedy
-        self.history = []
+        self.history = [] #Historia de estados y acciones antes de llegar a la recompensa y estado terminal.
         
         self.politica_csv_path = politica_csv_path
         self.estados = {}
+        # Training es un booleano que indica si estamos entrenando o jugando
+        # por lo que decide si se comienza una tabla nueva o se utiliza una ya existente
+        self.training = training
 
-        # Elimina el archivo si ya existe
-        if os.path.exists(self.politica_csv_path):
-            os.remove(self.politica_csv_path)
+        if training:
+            # Elimina el archivo si ya existe
+            if os.path.exists(self.politica_csv_path):
+                os.remove(self.politica_csv_path)
 
+            self._crear_csv()
+            
+        self._cargar_estados()
         self._crear_csv()
         self._cargar_estados()
 
-    def _crear_csv(self):
+    def _crear_csv(self): #Crea un csv vacio con la tabla.
         estados_base = {
             0: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
             1: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
@@ -203,7 +203,7 @@ class ElBatoQueSoloCalculaPromediosPicados(Jugador):
                     fila = [estado, puntuacion] + list(estados_base[estado].values())
                     writer.writerow(fila)
 
-    def _cargar_estados(self):
+    def _cargar_estados(self): #Carga los estados de un csv, vacio (formateado con crear_csv) o no.
         with open(self.politica_csv_path, mode='r') as file:
             reader = csv.DictReader(file)
             for row in reader:
@@ -218,7 +218,7 @@ class ElBatoQueSoloCalculaPromediosPicados(Jugador):
                     "c_plantarse": int(row["c_plantarse"])
                 }
 
-    def guardar_estados_en_csv(self):
+    def guardar_estados_en_csv(self): #Guarda los estados una vez finalizado el entrenamiento.
         """Guarda el contenido de self.estados en el archivo CSV."""
         with open(self.politica_csv_path, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -231,46 +231,19 @@ class ElBatoQueSoloCalculaPromediosPicados(Jugador):
                             valores["c_tirar"], valores["c_plantarse"]]
                     writer.writerow(fila)
 
-
-    # def print_table(self):
-    #     for state, rewards in self.estados.items():
-    #         reward_plantarse = rewards["plantarse"]
-    #         reward_tirar = rewards["tirar"]
-    #         avg_reward_plantarse = reward_plantarse / rewards["c_plantarse"]
-    #         avg_reward_tirar = reward_tirar / rewards["c_tirar"]
-    #         ct = rewards["c_tirar"]
-    #         cp = rewards["c_plantarse"]
-
-    #         print(f"State {state}:")
-    #         print(f"  Cantidad plantarse: {cp:.2f}")
-    #         print(f"  Cantidad tirar: {ct:.2f}")
-    #         print(f"  Promedio reward_plantarse: {avg_reward_plantarse:.2f}")
-    #         print(f"  Promedio reward_tirar: {avg_reward_tirar:.2f}")
-
     def jugar(self, puntaje_total: int, puntaje_turno: int, dados: list[int]):
         (puntaje, no_usados) = puntaje_y_no_usados(dados)
         cant_dados = len(no_usados)
 
-        if uniform(0, 1) < self.epsilon: #BUGGG?? tenemos poca entrada no greedy y sube mas greedy 50%
+        if uniform(0, 1) < self.epsilon and self.training: #Caso epsilon
             if uniform(0, 1) > 0.5:
                 self.history.append((cant_dados, "plantarse"))
                 return (JUGADA_PLANTARSE, [])
             else:
                 self.history.append((cant_dados, "tirar"))
                 return (JUGADA_TIRAR, no_usados)
-
-        # if uniform(0, 1) < self.epsilon: #### TOMO DECISION NO GREEDY, CONTRARIA
-        #     if (
-        #         self.estados[cant_dados][puntaje_total]["tirar"] / self.estados[cant_dados][puntaje_total]["c_tirar"]
-        #         > self.estados[cant_dados][puntaje_total]["plantarse"]
-        #         / self.estados[cant_dados][puntaje_total]["c_plantarse"]
-        #     ):
-        #         self.history.append((cant_dados, "plantarse"))
-        #         return (JUGADA_PLANTARSE, [])
-        #     else:
-        #         self.history.append((cant_dados, "tirar"))
-        #         return (JUGADA_TIRAR, no_usados)
-        else:
+        
+        else: #Caso juego normal, elijo opción con mayor esperanza estimada en Tabla Q.
             if (
                 self.estados[cant_dados][puntaje_total]["tirar"] / self.estados[cant_dados][puntaje_total]["c_tirar"]
                 > self.estados[cant_dados][puntaje_total]["plantarse"]
@@ -285,51 +258,43 @@ class ElBatoQueSoloCalculaPromediosPicados(Jugador):
             ):
                 self.history.append((cant_dados, "plantarse"))
                 return (JUGADA_PLANTARSE, [])
-            else:
-                if uniform(0, 1) > 0.5: #si es igual random
+            else: #Si son iguales elijo random
+                if uniform(0, 1) > 0.5: 
                     self.history.append((cant_dados, "tirar"))
                     return (JUGADA_TIRAR, no_usados)
                 else:
                     self.history.append((cant_dados, "plantarse"))
                     return (JUGADA_PLANTARSE, [])
-            # elif self.estados[cant_dados][puntaje_total]["tirar"] == 0 and self.estados[cant_dados][puntaje_total]["plantarse"] == 0: # caso inicial random
-            #     if uniform(0, 1) > 0.5:
-            #         self.history.append((cant_dados, "tirar"))
-            #         return (JUGADA_TIRAR, no_usados)
-            #     else:
-            #         self.history.append((cant_dados, "plantarse"))
-            #         return (JUGADA_PLANTARSE, [])
-            # else: # es igual? ok me planto mas safe (rebug final)
-            #     self.history.append((cant_dados, "plantarse"))
-            #     return (JUGADA_PLANTARSE, [])
 
 
     def actualizar_tabla(self, estado, puntaje_turno, puntaje_total):
+        if self.training: # Si estoy entrenando actualizo tabla.
+            nuevo_puntaje_total = puntaje_total + puntaje_turno
+            # Ajustar la recompensa si excede el puntaje máximo de 10,000
+            if nuevo_puntaje_total > 10000:
+                puntaje_turno = 10000 - puntaje_total
 
-        nuevo_puntaje_total = puntaje_total + puntaje_turno
-        # Ajustar la recompensa si excede el puntaje máximo de 10,000
-        if nuevo_puntaje_total > 10000:
-            puntaje_turno = 10000 - puntaje_total
-
-        for estado, accion in self.history:
-            self.estados[estado][puntaje_total][accion] += puntaje_turno
-            self.estados[estado][puntaje_total]["c_" + accion] += 1
+            for estado, accion in self.history:
+                self.estados[estado][puntaje_total][accion] += puntaje_turno
+                self.estados[estado][puntaje_total]["c_" + accion] += 1
         self.history.clear()
 
-class ElBatoQueSoloCalculaPromediosMasPicados(Jugador):
-    def __init__(self, epsilon: float, politica_csv_path):
-        self.nombre = "Monte Carlo"
+class MonteCarlo_Base_Ag3_PTotalyAcum(Jugador):
+    def __init__(self, epsilon: float, politica_csv_path, training):
+        self.nombre = "MonteCarlo_Base_Ag3_PTotalyAcum"
         self.epsilon = epsilon  # e-greedy
-        self.history = []
-
+        self.history = [] # Historia de estados y acciones antes de llegar a la recompensa y estado terminal.
+        self.training = training
         self.politica_csv_path = politica_csv_path
         self.estados = {}
+        
+        if training:
+            # Elimina el archivo si ya existe
+            if os.path.exists(self.politica_csv_path):
+                os.remove(self.politica_csv_path)
 
-        # Elimina el archivo si ya existe
-        if os.path.exists(self.politica_csv_path):
-            os.remove(self.politica_csv_path)
-
-        self._crear_csv()
+            self._crear_csv()
+            
         self._cargar_estados()
 
     def _crear_csv(self):
@@ -388,13 +353,12 @@ class ElBatoQueSoloCalculaPromediosMasPicados(Jugador):
     def jugar(self, puntaje_total: int, puntaje_turno: int, dados: list[int]):
         (puntaje, no_usados) = puntaje_y_no_usados(dados)
         cant_dados = len(no_usados)
-        puntaje_acumulado = puntaje_turno #no tiene lo de la tirada + puntaje???
-        # hardcode para probar algo
-        if puntaje_turno >= 10000:
-        #if puntaje_acumulado + puntaje >= 10000:
+        puntaje_acumulado = puntaje_turno
+
+        if puntaje_turno >= 10000: #Mini Fix acorde al flujo del juego donde se llegan a puntuaciones mayores a 10000.
             return (JUGADA_PLANTARSE, [])
 
-        if uniform(0, 1) < self.epsilon:  # Acción no greedy
+        if uniform(0, 1) < self.epsilon and self.training:  # Acción no greedy
             if uniform(0, 1) > 0.5:
                 self.history.append((cant_dados, puntaje_total, puntaje_acumulado, "plantarse"))
                 return (JUGADA_PLANTARSE, [])
@@ -425,32 +389,36 @@ class ElBatoQueSoloCalculaPromediosMasPicados(Jugador):
                     return (JUGADA_PLANTARSE, [])
 
     def actualizar_tabla(self, estado, puntaje_turno, puntaje_total):
-        nuevo_puntaje_total = puntaje_total + puntaje_turno
-        if nuevo_puntaje_total > 10000: 
-            puntaje_turno = 10000 - puntaje_total
+        if self.training:
+            nuevo_puntaje_total = puntaje_total + puntaje_turno
+            if nuevo_puntaje_total > 10000: 
+                puntaje_turno = 10000 - puntaje_total
 
-        for estado, _, puntaje_acum, accion in self.history: # puntaje total deberia ser igual a _, acum no porque es parte del estado
-            if puntaje_acum + puntaje_total > 10000:
-                puntaje_acum = 10000 - puntaje_total
-            self.estados[estado][puntaje_total][puntaje_acum][accion] += puntaje_turno
-            self.estados[estado][puntaje_total][puntaje_acum]["c_" + accion] += 1
+            for estado, _, puntaje_acum, accion in self.history:
+                if puntaje_acum + puntaje_total > 10000:
+                    puntaje_acum = 10000 - puntaje_total
+                self.estados[estado][puntaje_total][puntaje_acum][accion] += puntaje_turno
+                self.estados[estado][puntaje_total][puntaje_acum]["c_" + accion] += 1
         self.history.clear()
 
 
-class ElBatoQueSoloCalculaPromediosPicadosPlus(Jugador):
-    def __init__(self, epsilon: float, politica_csv_path):
-        self.nombre = "Monte Carlo"
+class MonteCarlo_Base_Ag4_PAcum(Jugador):
+    def __init__(self, epsilon: float, politica_csv_path, training):
+        self.nombre = "MonteCarlo_Base_Ag4_PAcum"
         self.epsilon = epsilon  # e-greedy
         self.history = []
+        self.training = training
 
         self.politica_csv_path = politica_csv_path
         self.estados = {}
 
-        # Elimina el archivo si ya existe
-        if os.path.exists(self.politica_csv_path):
-            os.remove(self.politica_csv_path)
+        if training:
+            # Elimina el archivo si ya existe
+            if os.path.exists(self.politica_csv_path):
+                os.remove(self.politica_csv_path)
 
-        self._crear_csv()
+            self._crear_csv()
+            
         self._cargar_estados()
 
     def _crear_csv(self):
@@ -501,21 +469,6 @@ class ElBatoQueSoloCalculaPromediosPicadosPlus(Jugador):
                             valores["c_tirar"], valores["c_plantarse"]]
                     writer.writerow(fila)
 
-    # def print_table(self):
-    #     for state, rewards in self.estados.items():
-    #         reward_plantarse = rewards["plantarse"]
-    #         reward_tirar = rewards["tirar"]
-    #         avg_reward_plantarse = reward_plantarse / rewards["c_plantarse"]
-    #         avg_reward_tirar = reward_tirar / rewards["c_tirar"]
-    #         ct = rewards["c_tirar"]
-    #         cp = rewards["c_plantarse"]
-
-    #         print(f"State {state}:")
-    #         print(f"  Cantidad plantarse: {cp:.2f}")
-    #         print(f"  Cantidad tirar: {ct:.2f}")
-    #         print(f"  Promedio reward_plantarse: {avg_reward_plantarse:.2f}")
-    #         print(f"  Promedio reward_tirar: {avg_reward_tirar:.2f}")
-
     def jugar(self, puntaje_total: int, puntaje_turno: int, dados: list[int]):
         (puntaje, no_usados) = puntaje_y_no_usados(dados)
         cant_dados = len(no_usados)
@@ -526,7 +479,7 @@ class ElBatoQueSoloCalculaPromediosPicadosPlus(Jugador):
         if nuevo_puntaje_total > 10000:
             puntaje_acum = 10000 - puntaje_total
 
-        if uniform(0, 1) < self.epsilon:  # BUGGG?? tenemos poca entrada no greedy y sube mas greedy 50%
+        if uniform(0, 1) < self.epsilon and self.training:  # BUGGG?? tenemos poca entrada no greedy y sube mas greedy 50%
             if uniform(0, 1) > 0.5:
                 self.history.append((cant_dados, puntaje_acum,"plantarse"))
                 return (JUGADA_PLANTARSE, [])
@@ -534,17 +487,6 @@ class ElBatoQueSoloCalculaPromediosPicadosPlus(Jugador):
                 self.history.append((cant_dados, puntaje_acum, "tirar"))
                 return (JUGADA_TIRAR, no_usados)
 
-        # if uniform(0, 1) < self.epsilon: #### TOMO DECISION NO GREEDY, CONTRARIA
-        #     if (
-        #         self.estados[cant_dados][puntaje_total]["tirar"] / self.estados[cant_dados][puntaje_total]["c_tirar"]
-        #         > self.estados[cant_dados][puntaje_total]["plantarse"]
-        #         / self.estados[cant_dados][puntaje_total]["c_plantarse"]
-        #     ):
-        #         self.history.append((cant_dados, "plantarse"))
-        #         return (JUGADA_PLANTARSE, [])
-        #     else:
-        #         self.history.append((cant_dados, "tirar"))
-        #         return (JUGADA_TIRAR, no_usados)
         else:
             if (
                     self.estados[cant_dados][puntaje_acum]["tirar"] / self.estados[cant_dados][puntaje_acum][
@@ -569,16 +511,6 @@ class ElBatoQueSoloCalculaPromediosPicadosPlus(Jugador):
                 else:
                     self.history.append((cant_dados, puntaje_acum,"plantarse"))
                     return (JUGADA_PLANTARSE, [])
-            # elif self.estados[cant_dados][puntaje_total]["tirar"] == 0 and self.estados[cant_dados][puntaje_total]["plantarse"] == 0: # caso inicial random
-            #     if uniform(0, 1) > 0.5:
-            #         self.history.append((cant_dados, "tirar"))
-            #         return (JUGADA_TIRAR, no_usados)
-            #     else:
-            #         self.history.append((cant_dados, "plantarse"))
-            #         return (JUGADA_PLANTARSE, [])
-            # else: # es igual? ok me planto mas safe (rebug final)
-            #     self.history.append((cant_dados, "plantarse"))
-            #     return (JUGADA_PLANTARSE, [])
 
     def actualizar_tabla(self, estado, puntaje_turno, puntaje_total):
 
@@ -587,26 +519,30 @@ class ElBatoQueSoloCalculaPromediosPicadosPlus(Jugador):
         #if nuevo_puntaje_total > 10000:
         #    puntaje_turno = 10000 - puntaje_total
 
-        for estado, puntaje_acum,accion in self.history:
-            self.estados[estado][puntaje_acum][accion] += puntaje_turno
-            self.estados[estado][puntaje_acum]["c_" + accion] += 1
+        if self.training:
+            for estado, puntaje_acum,accion in self.history:
+                self.estados[estado][puntaje_acum][accion] += puntaje_turno
+                self.estados[estado][puntaje_acum]["c_" + accion] += 1
         self.history.clear()
 
 
-class ElBatoQueSoloCalculaPromediosMasPicados_Upgraded(Jugador):
-    def __init__(self, epsilon: float, politica_csv_path):
-        self.nombre = "Monte Carlo"
+class MonteCarlo_Base_Ag5_PTotalBinnedyAcum(Jugador):
+    def __init__(self, epsilon: float, politica_csv_path, training):
+        self.nombre = "MonteCarlo_Base_Ag5_PTotalBinnedyAcum"
         self.epsilon = epsilon  # e-greedy
         self.history = []
+        self.training = training
 
         self.politica_csv_path = politica_csv_path
         self.estados = {}
 
-        # Elimina el archivo si ya existe
-        if os.path.exists(self.politica_csv_path):
-            os.remove(self.politica_csv_path)
+        if training:
+            # Elimina el archivo si ya existe
+            if os.path.exists(self.politica_csv_path):
+                os.remove(self.politica_csv_path)
 
-        self._crear_csv()
+            self._crear_csv()
+            
         self._cargar_estados()
 
     def _crear_csv(self):
@@ -664,7 +600,7 @@ class ElBatoQueSoloCalculaPromediosMasPicados_Upgraded(Jugador):
                                 valores["c_tirar"], valores["c_plantarse"]]
                         writer.writerow(fila)
 
-    def _asignar_bin(self, numero):
+    def _asignar_bin(self, numero): # Discretizo aun más en rangos para tener menor cantidad de estados.
         # Definir los límites
         bins = np.arange(6750, 10250, 250)  # Bins desde 6750 hasta 10000
         if numero < 6750:
@@ -676,15 +612,14 @@ class ElBatoQueSoloCalculaPromediosMasPicados_Upgraded(Jugador):
     def jugar(self, puntaje_total: int, puntaje_turno: int, dados: list[int]):
         (puntaje, no_usados) = puntaje_y_no_usados(dados)
         cant_dados = len(no_usados)
-        puntaje_acumulado = puntaje_turno  # no tiene lo de la tirada + puntaje???
-        # hardcode para probar algo
-        if puntaje_turno >= 10000:
-            # if puntaje_acumulado + puntaje >= 10000:
+        puntaje_acumulado = puntaje_turno
+        
+        if puntaje_turno >= 10000: # Mini Fix según flujo del juego.
             return (JUGADA_PLANTARSE, [])
 
         puntaje_total_binned = self._asignar_bin(puntaje_total)
 
-        if uniform(0, 1) < self.epsilon:  # Acción no greedy
+        if uniform(0, 1) < self.epsilon and self.training:  # Acción no greedy
             if uniform(0, 1) > 0.5:
                 self.history.append((cant_dados, puntaje_total_binned, puntaje_acumulado, "plantarse"))
                 return (JUGADA_PLANTARSE, [])
@@ -717,38 +652,42 @@ class ElBatoQueSoloCalculaPromediosMasPicados_Upgraded(Jugador):
                     return (JUGADA_PLANTARSE, [])
 
     def actualizar_tabla(self, estado, puntaje_turno, puntaje_total):
+        if self.training:
+            nuevo_puntaje_total = puntaje_total + puntaje_turno
+            if nuevo_puntaje_total > 10000:
+                puntaje_turno = 10000 - puntaje_total
 
-        nuevo_puntaje_total = puntaje_total + puntaje_turno
-        if nuevo_puntaje_total > 10000:
-            puntaje_turno = 10000 - puntaje_total
+            puntaje_total_binned = self._asignar_bin(puntaje_total)
 
-        puntaje_total_binned = self._asignar_bin(puntaje_total)
-
-        for estado, _, puntaje_acum, accion in self.history:  # puntaje total deberia ser igual a _, acum no porque es parte del estado
-            if puntaje_acum + puntaje_total > 10000:
-                puntaje_acum = 10000 - puntaje_total
-            self.estados[estado][puntaje_total_binned][puntaje_acum][accion] += puntaje_turno
-            self.estados[estado][puntaje_total_binned][puntaje_acum]["c_" + accion] += 1
+            for estado, _, puntaje_acum, accion in self.history:  # puntaje total deberia ser igual a _, acum no porque es parte del estado
+                if puntaje_acum + puntaje_total > 10000:
+                    puntaje_acum = 10000 - puntaje_total
+                self.estados[estado][puntaje_total_binned][puntaje_acum][accion] += puntaje_turno
+                self.estados[estado][puntaje_total_binned][puntaje_acum]["c_" + accion] += 1
         self.history.clear()
 
 
-class ElBatoQueSoloCalculaPromediosMasPicados_UpgradedAll(Jugador):
-    def __init__(self, epsilon: float, politica_csv_path):
-        self.nombre = "Monte Carlo"
+class MonteCarlo_Base_Ag6_PTotalBinned1000yAcum(Jugador):
+    def __init__(self, epsilon: float, politica_csv_path, training):
+        self.nombre = "MonteCarlo_Base_Ag6_PTotalBinned1000yAcum"
         self.epsilon = epsilon  # e-greedy
         self.history = []
-
+        # Training es un booleano que indica si estamos entrenando o jugando
+        # por lo que decide si se comienza una tabla nueva o se utiliza una ya existente
+        self.training = training
         self.politica_csv_path = politica_csv_path
         self.estados = {}
 
-        # Elimina el archivo si ya existe
-        if os.path.exists(self.politica_csv_path):
-            os.remove(self.politica_csv_path)
+        if training:
+            # Elimina el archivo si ya existe
+            if os.path.exists(self.politica_csv_path):
+                os.remove(self.politica_csv_path)
 
-        self._crear_csv()
+            self._crear_csv()
+            
         self._cargar_estados()
 
-    def _crear_csv(self):
+    def _crear_csv(self): #Crea un csv vacio con la tabla.
         estados_base = {
             0: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
             1: {"tirar": 0, "plantarse": 0, "c_tirar": 1, "c_plantarse": 1},
@@ -770,7 +709,7 @@ class ElBatoQueSoloCalculaPromediosMasPicados_UpgradedAll(Jugador):
                         fila = [estado, puntuacion, puntaje_acumulado] + list(estados_base[estado].values())
                         writer.writerow(fila)
 
-    def _cargar_estados(self):
+    def _cargar_estados(self): #Carga los estados de un csv, vacio (formateado con crear_csv) o no.
         with open(self.politica_csv_path, mode='r') as file:
             reader = csv.DictReader(file)
             for row in reader:
@@ -788,7 +727,7 @@ class ElBatoQueSoloCalculaPromediosMasPicados_UpgradedAll(Jugador):
                     "c_plantarse": int(row["c_plantarse"])
                 }
 
-    def guardar_estados_en_csv(self):
+    def guardar_estados_en_csv(self): #Guarda los estados una vez finalizado el entrenamiento.
         """Guarda el contenido de self.estados en el archivo CSV."""
         with open(self.politica_csv_path, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -803,7 +742,7 @@ class ElBatoQueSoloCalculaPromediosMasPicados_UpgradedAll(Jugador):
                                 valores["c_tirar"], valores["c_plantarse"]]
                         writer.writerow(fila)
 
-    def _asignar_bin(self, numero):
+    def _asignar_bin(self, numero): #
         # Definir los límites
         bins = np.arange(0, 11000, 1000)  # Bins desde 6750 hasta 10000
         return bins[np.argmin(np.abs(bins - numero))]
@@ -819,7 +758,7 @@ class ElBatoQueSoloCalculaPromediosMasPicados_UpgradedAll(Jugador):
 
         puntaje_total_binned = self._asignar_bin(puntaje_total)
 
-        if uniform(0, 1) < self.epsilon:  # Acción no greedy
+        if uniform(0, 1) < self.epsilon and self.training:  # Acción no greedy
             if uniform(0, 1) > 0.5:
                 self.history.append((cant_dados, puntaje_total_binned, puntaje_acumulado, "plantarse"))
                 return (JUGADA_PLANTARSE, [])
@@ -852,18 +791,18 @@ class ElBatoQueSoloCalculaPromediosMasPicados_UpgradedAll(Jugador):
                     return (JUGADA_PLANTARSE, [])
 
     def actualizar_tabla(self, estado, puntaje_turno, puntaje_total):
+        if self.training: # Si estoy entrenando actualizo tabla.
+            nuevo_puntaje_total = puntaje_total + puntaje_turno
+            if nuevo_puntaje_total > 10000:
+                puntaje_turno = 10000 - puntaje_total
 
-        nuevo_puntaje_total = puntaje_total + puntaje_turno
-        if nuevo_puntaje_total > 10000:
-            puntaje_turno = 10000 - puntaje_total
+            puntaje_total_binned = self._asignar_bin(puntaje_total)
 
-        puntaje_total_binned = self._asignar_bin(puntaje_total)
-
-        for estado, _, puntaje_acum, accion in self.history:  # puntaje total deberia ser igual a _, acum no porque es parte del estado
-            if puntaje_acum + puntaje_total > 10000:
-                puntaje_acum = 10000 - puntaje_total
-            self.estados[estado][puntaje_total_binned][puntaje_acum][accion] += puntaje_turno
-            self.estados[estado][puntaje_total_binned][puntaje_acum]["c_" + accion] += 1
+            for estado, _, puntaje_acum, accion in self.history:  # puntaje total deberia ser igual a _, acum no porque es parte del estado
+                if puntaje_acum + puntaje_total > 10000:
+                    puntaje_acum = 10000 - puntaje_total
+                self.estados[estado][puntaje_total_binned][puntaje_acum][accion] += puntaje_turno
+                self.estados[estado][puntaje_total_binned][puntaje_acum]["c_" + accion] += 1
         self.history.clear()
 
 class AgenteQLearning(Jugador):

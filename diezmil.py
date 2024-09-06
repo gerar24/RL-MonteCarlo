@@ -7,12 +7,13 @@ from jugador import (
     Jugador,
     JugadorAleatorio,
     JugadorSiempreSePlanta,
-    ElBatoQueSoloCalculaPromedios,
-    AgenteQLearning,
-    ElBatoQueSoloCalculaPromediosPicados,
-    ElBatoQueSoloCalculaPromediosMasPicados,
-    ElBatoQueSoloCalculaPromediosPicadosPlus,
-    ElBatoQueSoloCalculaPromediosMasPicados_Upgraded,
+    MonteCarlo_Base_Ag1,
+    MonteCarlo_Base_Ag2_PTotal,
+    MonteCarlo_Base_Ag3_PTotalyAcum,
+    MonteCarlo_Base_Ag4_PAcum,
+    MonteCarlo_Base_Ag5_PTotalBinnedyAcum,
+    MonteCarlo_Base_Ag6_PTotalBinned1000yAcum,
+    AgenteQLearning
 )
 
 
@@ -49,55 +50,26 @@ class JuegoDiezMil:
                     # Mala suerte, no suma nada. Pierde el turno.
                     fin_de_turno = True
                     puntaje_turno = 0
-                    if isinstance(self.jugador, ElBatoQueSoloCalculaPromedios):
-                        self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno)
-                    elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosPicados):
-                        self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
-                    elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosMasPicados):
-                        self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
-                    elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosPicadosPlus):
-                        self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
-                    elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosMasPicados_Upgraded):
-                        self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
-                    elif isinstance(self.jugador, AgenteQLearning):
-                        self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno)
-                        # print("PERDIO", dados_a_tirar, puntaje_turno)
 
+                    if isinstance(self.jugador, MonteCarlo_Base_Ag1) or isinstance(self.jugador, AgenteQLearning):
+                            self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno)
+                    else:
+                        self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
 
                 else:
                     # Bien, suma puntos. Preguntamos al jugador qué quiere hacer.
                     jugada, dados_a_tirar = self.jugador.jugar(
                         puntaje_total, puntaje_turno, dados # puntaje turno cambiado por puntajeturno + puntaje tirada
-                    ) #PORQUE ACA PUNTAJE TURNO NO TIENE LA TIRADA ??????????
+                    )
 
                     if jugada == JUGADA_PLANTARSE:
                         msg += "P"
                         fin_de_turno = True
                         puntaje_turno += puntaje_tirada
-                        if isinstance(self.jugador, ElBatoQueSoloCalculaPromedios):
-                            self.jugador.actualizar_tabla(
-                                len(dados_a_tirar), puntaje_turno
-                            )
-                        elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosPicados):
-                            self.jugador.actualizar_tabla(
-                                len(dados_a_tirar), puntaje_turno, puntaje_total
-                            )
-                        elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosMasPicados):
-                            self.jugador.actualizar_tabla(
-                                len(dados_a_tirar), puntaje_turno, puntaje_total
-                            )
-                        elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosPicadosPlus):
-                            self.jugador.actualizar_tabla(
-                                len(dados_a_tirar), puntaje_turno, puntaje_total
-                            )
-                        elif isinstance(self.jugador, ElBatoQueSoloCalculaPromediosMasPicados_Upgraded):
-                            self.jugador.actualizar_tabla(
-                                len(dados_a_tirar), puntaje_turno, puntaje_total
-                            )
-                        elif isinstance(self.jugador, AgenteQLearning):
-                            self.jugador.actualizar_tabla(
-                                len(dados_a_tirar), puntaje_turno
-                            )
+                        if isinstance(self.jugador, MonteCarlo_Base_Ag1) or isinstance(self.jugador, AgenteQLearning):
+                            self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno)
+                        else:
+                            self.jugador.actualizar_tabla(len(dados_a_tirar), puntaje_turno, puntaje_total)
 
                     elif jugada == JUGADA_TIRAR:
                         dados_a_separar = separar(dados, dados_a_tirar)
@@ -124,100 +96,29 @@ class JuegoDiezMil:
             if verbose:
                 print(msg)
         return (turno, puntaje_total)
-#
-#
-# def main():
-#     # jugador = JugadorAleatorio("random")
-#     # juego = JuegoDiezMil(jugador)
-#     # (cantidad_turnos, puntaje_final) = juego.jugar(verbose=True)
-#     # print(jugador.nombre, cantidad_turnos, puntaje_final)
-#
-#     # jugador = JugadorSiempreSePlanta("plantón")
-#     # juego = JuegoDiezMil(jugador)
-#     # (cantidad_turnos, puntaje_final) = juego.jugar(verbose=True)
-#     # print(jugador.nombre, cantidad_turnos, puntaje_final)
-#
-#     # jugador = ElBatoQueSoloCalculaPromedios(0.05)
-#     # jugador_random = JugadorAleatorio("random")
-#
-#     play_amounts = []
-#     for j in tqdm(range(5)):
-#         player_amounts = []
-#         jugador = ElBatoQueSoloCalculaPromedios(0.05, "politica_chill.csv")
-#         #jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picada.csv")
-#         #jugador = ElBatoQueSoloCalculaPromediosMasPicados(0.05, "politica_maspicada.csv")
-#         #jugador = ElBatoQueSoloCalculaPromediosPicados(0.05, "politica_picadaplus.csv")
-#         # jugador = AgenteQLearning(0.05, 0.99, 0.05, 0.05)
-#
-#         for i in tqdm(range(20000)):
-#             juego = JuegoDiezMil(jugador)
-#             # juego_aleatorio = JuegoDiezMil(jugador_random)
-#             (cantidad_turnos, puntaje_final) = juego.jugar(verbose=False)
-#             # (cantidad_turnos_random, puntaje_final_random) = juego_aleatorio.jugar(
-#             #     verbose=False
-#             # )
-#             player_amounts.append(cantidad_turnos)
-#             # play_amounts_random.append((i, cantidad_turnos_random))
-#             # print(jugador.nombre, cantidad_turnos, puntaje_final)
-#         # jugador.print_table()
-#         play_amounts.append(player_amounts)
-#         if isinstance(jugador, ElBatoQueSoloCalculaPromediosPicados):
-#             jugador.guardar_estados_en_csv()
-#         if isinstance(jugador, ElBatoQueSoloCalculaPromediosMasPicados):
-#             jugador.guardar_estados_en_csv()
-#         if isinstance(jugador, ElBatoQueSoloCalculaPromedios):
-#             jugador.guardar_estados_en_csv()
-#         if isinstance(jugador, ElBatoQueSoloCalculaPromediosPicadosPlus):
-#             jugador.guardar_estados_en_csv()
-#
-#
-#     # Convert play_amounts to a numpy array for easier manipulation
-#     play_amounts = np.array(play_amounts)
-#
-#     # Calculate the average play amount across all agents for each iteration
-#     average_play_amounts = np.mean(play_amounts, axis=0)
-#
-#     # ultimas mil
-#     # Select the last 1000 iterations
-#     last_1000 = play_amounts[:, -1000:]
-#     # Calculate the average for each agent over the last 1000 iterations
-#     average_last_1000_per_agent = np.mean(last_1000, axis=1)
-#     # Calculate the overall average across the agents
-#     overall_average = np.mean(average_last_1000_per_agent)
-#     print("OVERALL AVERAGE in last 1000 its", overall_average)
-#
-#     # Plot the average play amounts
-#     plt.figure(figsize=(10, 6))
-#     plt.plot(
-#         range(len(average_play_amounts)),
-#         average_play_amounts,
-#         label="Average Play Amounts",
-#     )
-#     plt.xlabel("Iteration")
-#     plt.ylabel("Average Play Amount")
-#     plt.title("Average Play Amounts Across 30 Agents Over 1000 Iterations")
-#     plt.legend()
-#     plt.savefig("MontecarloPicado.png")
-#     plt.show()
 
 def main():
+    # Agentes a entrenar o jugar.
     agent_classes = [
-        #("politica_chill.csv", ElBatoQueSoloCalculaPromedios),
-        #("politica_picada.csv", ElBatoQueSoloCalculaPromediosPicados),
-        #("politica_maspicada_10palos.csv", ElBatoQueSoloCalculaPromediosMasPicados),
-        #("politica_picadaplus_1palo_2.5%_nmalrecomp.csv", ElBatoQueSoloCalculaPromediosPicadosPlus),
-        ("politica_maspicadaupgraded_10palo_5%.csv", ElBatoQueSoloCalculaPromediosMasPicados_Upgraded),
-        # ("", AgenteQLearning),  # Añadir parámetros según sea necesario
-    ]
+        #("politica_chill.csv", MonteCarlo_Base_Ag1),
+        #("politica_picada.csv", MonteCarlo_Base_Ag2_PTotal),
+        #("politica_maspicada_10palos.csv", MonteCarlo_Base_Ag3_PTotalyAcum),
+        #("politica_picadaplus_1palo_2.5%_nmalrecomp.csv", MonteCarlo_Base_Ag4_PAcum),
+        #("politica_maspicadaupgraded_10palo_5%.csv", MonteCarlo_Base_Ag5_PTotalBinnedyAcum),
+        #("politica_maspicadaupgradedall_5palo_5%.csv", MonteCarlo_Base_Ag6_PTotalBinned1000yAcum),
+        #("", AgenteQLearning),  # Añadir parámetros según sea necesario
 
+    ]
+    # Cantidad de iteraciones a entrenar/jugar
+    its = 100000
     for policy_file, AgentClass in agent_classes:
         play_amounts = []
 
         for j in tqdm(range(1), desc=f"Running {AgentClass.__name__}"):
             player_amounts = []
-            jugador = AgentClass(0.05, policy_file)
+            jugador = AgentClass(0.025, policy_file, False) #Epsilon-Greedy Param, CSV Politica File, Training Bool.
 
-            for i in tqdm(range(10000000), desc=f"Iteration {j + 1}/10"):
+            for i in tqdm(range(its), desc=f"Iteration {j + 1}/10"): 
                 juego = JuegoDiezMil(jugador)
                 (cantidad_turnos, puntaje_final) = juego.jugar(verbose=False)
                 player_amounts.append(cantidad_turnos)
@@ -231,11 +132,11 @@ def main():
         # Calculate the average play amount across all runs
         average_play_amounts = np.mean(play_amounts, axis=0)
 
-        # Últimas mil iteraciones
+        # Últimas diez mil iteraciones
         last_10000 = play_amounts[:, -10000:]
         average_last_10000_per_agent = np.mean(last_10000, axis=1)
         overall_average = np.mean(average_last_10000_per_agent)
-        print(f"OVERALL AVERAGE in last 10000 iterations for {AgentClass.__name__}: {overall_average}")
+        print(f"OVERALL AVERAGE in last 100000 iterations for {AgentClass.__name__}: {overall_average}")
 
         # Plot the average play amounts
         plt.figure(figsize=(10, 6))
@@ -246,9 +147,9 @@ def main():
         )
         plt.xlabel("Iteration")
         plt.ylabel("Average Play Amount")
-        plt.title(f"Average Play Amounts for {AgentClass.__name__} Over 10,000,000 Iterations")
-        plt.text(len(average_play_amounts) * 0.75, np.min(average_play_amounts) * 0.98, f"Average in last 10000 iterations{overall_average}")
-        plt.savefig(f"Montecarlo_{AgentClass.__name__}_10palo_5%.png")
+        plt.title(f"Average Play Amounts for {AgentClass.__name__} Over {its} Iterations")
+        plt.text(len(average_play_amounts) * 0.75, np.min(average_play_amounts) * 0.98, f"Average in last 10000 iterations{overall_average}") #
+        plt.savefig(f"{AgentClass.__name__}_10palo_ntjuego1palo.png")
         plt.close()
 
 
